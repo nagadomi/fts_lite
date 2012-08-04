@@ -1,6 +1,11 @@
 # FtsLite
 
-simple full text search engine.
+simple full text search index.
+
+## Dependency
+
+    Ruby >= 1.9.2
+    SQLite3 >= 3.7.7 (FTS4 REPLACE support)
 
 ## Installation
 
@@ -20,7 +25,7 @@ Or install it yourself as:
 
     require 'fts_lite'
     
-    db = FtsLite::Database.new("./db.sqlite3", :tokenizer => :wakachi_bigram, :cache_size => 64000)
+    db = FtsLite::Database.new("./db.sqlite3", :tokenizer => :bigram, :cache_size => 64000)
     
     docid = 1
     text = "hoge piyo"

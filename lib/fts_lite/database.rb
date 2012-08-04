@@ -2,7 +2,7 @@ require 'sqlite3'
 
 module FtsLite
   class Database
-    DEFAULT_TOKENIZER = :wakachi_bigram
+    DEFAULT_TOKENIZER = :bigram
     DEFAULT_JURNAL_MODE = "MEMORY"
     DEFAULT_TEMP_STORE = "MEMORY"
     DEFAULT_CACHE_SIZE = 32000

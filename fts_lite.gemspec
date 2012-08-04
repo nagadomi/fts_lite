@@ -6,7 +6,7 @@ Gem::Specification.new do |gem|
   gem.email         = ["nagadomi@nurs.or.jp"]
   gem.description   = %q{simple full text search engine}
   gem.summary       = %q{simple full text search engine}
-  gem.homepage      = ""
+  gem.homepage      = "https://github.com/nagadomi/fts_lite"
 
   gem.files         = `git ls-files`.split($\)
   gem.executables   = gem.files.grep(%r{^bin/}).map{ |f| File.basename(f) }
