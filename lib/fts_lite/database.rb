@@ -2,7 +2,7 @@ require 'sqlite3'
 
 module FtsLite
   class Database
-    DEFAULT_TOKENIZER = :bigram
+    DEFAULT_TOKENIZER = :wakachi_bigram
     DEFAULT_JURNAL_MODE = "MEMORY"
     DEFAULT_TEMP_STORE = "MEMORY"
     DEFAULT_CACHE_SIZE = 32000
@@ -78,7 +78,7 @@ module FtsLite
     def batch_insert_or_replace(records)
       @db.prepare("INSERT OR REPLACE INTO #{@table_name} (docid, text, sort_value) VALUES(?, ?, ?);") do |stmt|
         records.each do |rec|
-          stmt.execute([rec[:docid], @tokenize.vector(rec[:text]), rec[:sort_value]])
+          stmt.execute([rec[:docid], @tokenizer.vector(rec[:text]), rec[:sort_value]])
         end
       end
     end
