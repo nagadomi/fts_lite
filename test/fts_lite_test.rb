@@ -26,6 +26,7 @@ class FtsLiteTest < Test::Unit::TestCase
         assert_equal db.search("ナポリタン", :order => :desc).size, 2
         assert_equal db.search("ナポリタン", :order => :desc)[0], 1
         assert_equal db.search("ナポリタン", :order => :desc)[1], 2
+        assert_equal db.search("赤い　ナポリタン", :order => :desc).size, 1
         
         db.set(1, "なぜナポリタンは青いのだろうか ？", 0)
         assert_equal db.search("赤い").size, 0
@@ -51,6 +52,7 @@ class FtsLiteTest < Test::Unit::TestCase
       assert_equal db.search("ナポリタン").size, 2
       assert_equal db.search("ナポリタン")[0], 1
       assert_equal db.search("ナポリタン")[1], 2
+      assert_equal db.search("赤い　ナポリタン", :order => :desc).size, 1
       
       assert_equal db.search("ナポリタン", :order => :desc).size, 2
       assert_equal db.search("ナポリタン", :order => :desc)[0], 1
@@ -80,11 +82,12 @@ class FtsLiteTest < Test::Unit::TestCase
       db.set(1, "なぜナポリタンは赤いのだろうか ？", 2)
       db.set(2, "昼飯のスパゲティナポリタンを眺めながら、積年の疑問を考えていた。 ", 1)
       
-      assert_equal db.search("赤い").size, 0
+      assert_equal db.search("赤いの").size, 1
       
       assert_equal db.search("ナポリタン").size, 2
       assert_equal db.search("ナポリタン")[0], 1
       assert_equal db.search("ナポリタン")[1], 2
+      assert_equal db.search("赤いの　ナポリタン", :order => :desc).size, 1
       
       assert_equal db.search("ナポリタン", :order => :desc).size, 2
       assert_equal db.search("ナポリタン", :order => :desc)[0], 1
@@ -120,6 +123,43 @@ class FtsLiteTest < Test::Unit::TestCase
       assert_equal db.search("ナポリタン").size, 2
       assert_equal db.search("ナポリタン")[0], 1
       assert_equal db.search("ナポリタン")[1], 2
+      assert_equal db.search("赤い　ナポリタン", :order => :desc).size, 1
+      
+      assert_equal db.search("ナポリタン", :order => :desc).size, 2
+      assert_equal db.search("ナポリタン", :order => :desc)[0], 1
+      assert_equal db.search("ナポリタン", :order => :desc)[1], 2
+      
+      assert_equal db.search("ナポリタン", :order => :asc).size, 2
+      assert_equal db.search("ナポリタン", :order => :asc)[0], 2
+      assert_equal db.search("ナポリタン", :order => :asc)[1], 1
+      
+      db.update_sort_value(1, 1)
+      db.update_sort_value(2, 2)
+      
+      assert_equal db.search("ナポリタン", :order => :desc).size, 2
+      assert_equal db.search("ナポリタン", :order => :desc)[0], 2
+      assert_equal db.search("ナポリタン", :order => :desc)[1], 1
+      
+      assert_equal db.search("ナポリタン", :order => :asc).size, 2
+      assert_equal db.search("ナポリタン", :order => :asc)[0], 1
+      assert_equal db.search("ナポリタン", :order => :asc)[1], 2
+    end
+  end
+  def test_simple
+    db = FtsLite::Index.open(DB_FILE, :tokenizer => :simple)
+    db.transaction do 
+      db.delete_all
+      p db.tokenize("なぜ ナポリタン は 赤い の だろ う か ？")
+      db.set(1, "なぜ ナポリタン は 赤い の だろ う か ？", 2)
+      db.set(2, "昼飯 の スパゲティ ナポリタン を 眺め ながら 、 積年 の 疑問 を 考え て い た", 1)
+      
+      assert_equal db.search("赤い").size, 1
+      assert_equal db.search("赤い")[0], 1
+      
+      assert_equal db.search("ナポリタン").size, 2
+      assert_equal db.search("ナポリタン")[0], 1
+      assert_equal db.search("ナポリタン")[1], 2
+      assert_equal db.search("赤い　ナポリタン", :order => :desc).size, 1
       
       assert_equal db.search("ナポリタン", :order => :desc).size, 2
       assert_equal db.search("ナポリタン", :order => :desc)[0], 1
