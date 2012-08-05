@@ -3,6 +3,9 @@ require 'test_helper'
 
 class FtsLiteTest < Test::Unit::TestCase
   DB_FILE = File.expand_path(File.join(File.dirname(__FILE__), "test.sqlite3"))
+  puts "RUBY_VERSION => #{RUBY_VERSION}"
+  puts "SQLITE3_VERSION => #{FtsLite::Database.sqlite3_version}"
+  puts "SQLITE_HAVE_FT4_REPLACE => #{FtsLite::Database.have_ft4_replace}"
   def setup
     if (File.exist?(DB_FILE))
       File.unlink(DB_FILE)
@@ -10,13 +13,36 @@ class FtsLiteTest < Test::Unit::TestCase
   end
   def teardown
   end
+  def test_update
+    db = FtsLite::Database.new(DB_FILE, :tokenizer => :bigram)
+    db.transaction do 
+      db.delete_all
+
+      assert_equal db.search("赤い").size, 0
+      db.update(1, "なぜナポリタンは赤いのだろうか ？", 2)
+      db.update(2, "昼飯のスパゲティナポリタンを眺めながら、積年の疑問を考えていた。 ", 1)
+      
+      assert_equal db.search("赤い").size, 1
+      assert_equal db.search("ナポリタン", :order => :desc).size, 2
+      assert_equal db.search("ナポリタン", :order => :desc)[0], 1
+      assert_equal db.search("ナポリタン", :order => :desc)[1], 2
+      
+      db.update(1, "なぜナポリタンは青いのだろうか ？", 0)
+      assert_equal db.search("赤い").size, 0
+      assert_equal db.search("青い").size, 1
+
+      assert_equal db.search("ナポリタン", :order => :desc).size, 2
+      assert_equal db.search("ナポリタン", :order => :desc)[0], 2
+      assert_equal db.search("ナポリタン", :order => :desc)[1], 1
+    end
+  end
   def test_bigram
     db = FtsLite::Database.new(DB_FILE, :tokenizer => :bigram)
     db.transaction do 
       db.delete_all
       p db.tokenize("なぜナポリタンは赤いのだろうか ？")
-      db.insert_or_replace(1, "なぜナポリタンは赤いのだろうか ？", 2)
-      db.insert_or_replace(2, "昼飯のスパゲティナポリタンを眺めながら、積年の疑問を考えていた。 ", 1)
+      db.update(1, "なぜナポリタンは赤いのだろうか ？", 2)
+      db.update(2, "昼飯のスパゲティナポリタンを眺めながら、積年の疑問を考えていた。 ", 1)
       
       assert_equal db.search("赤い").size, 1
       assert_equal db.search("赤い")[0], 1
@@ -50,8 +76,8 @@ class FtsLiteTest < Test::Unit::TestCase
     db.transaction do 
       db.delete_all
       p db.tokenize("なぜナポリタンは赤いのだろうか ？")
-      db.insert_or_replace(1, "なぜナポリタンは赤いのだろうか ？", 2)
-      db.insert_or_replace(2, "昼飯のスパゲティナポリタンを眺めながら、積年の疑問を考えていた。 ", 1)
+      db.update(1, "なぜナポリタンは赤いのだろうか ？", 2)
+      db.update(2, "昼飯のスパゲティナポリタンを眺めながら、積年の疑問を考えていた。 ", 1)
       
       assert_equal db.search("赤い").size, 0
       
@@ -84,15 +110,9 @@ class FtsLiteTest < Test::Unit::TestCase
     db.transaction do 
       db.delete_all
       p db.tokenize("なぜナポリタンは赤いのだろうか ？")
-      db.batch_insert([{ :docid => 1,
-                         :text => "なぜナポリタンは赤いのだろうか ？",
-                         :sort_value => 2
-                       },
-                       { :docid => 2,
-                         :text => "昼飯のスパゲティナポリタンを眺めながら、積年の疑問を考えていた。 ",
-                         :sort_value => 1
-                       }
-                      ])
+      db.update(1, "なぜナポリタンは赤いのだろうか ？", 2)
+      db.update(2, "昼飯のスパゲティナポリタンを眺めながら、積年の疑問を考えていた。 ", 1)
+      
       assert_equal db.search("赤い").size, 1
       assert_equal db.search("赤い")[0], 1
       

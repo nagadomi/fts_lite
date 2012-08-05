@@ -6,7 +6,14 @@ module FtsLite
     DEFAULT_JURNAL_MODE = "MEMORY"
     DEFAULT_TEMP_STORE = "MEMORY"
     DEFAULT_CACHE_SIZE = 32000
+    SQLITE_HAVE_FT4_REPLACE = SQLite3.libversion >= 3007007
     
+    def self.have_ft4_replace
+      SQLITE_HAVE_FT4_REPLACE
+    end
+    def self.sqlite3_version
+      SQLite3.libversion
+    end
     class RuntimeError < ::RuntimeError
     end
     
@@ -17,20 +24,30 @@ module FtsLite
       set_db_param(options)
       @tokenizer = Tokenizer.create(options[:tokenizer] || DEFAULT_TOKENIZER)
     end
-    def tokenize(text)
-      @tokenizer.vector(text).split(" ")
-    end
     def close
       @db.close
+    end
+    def tokenize(text)
+      @tokenizer.vector(text).split(" ")
     end
     def transaction(&block)
       @db.transaction do
         block.call
       end
     end
-    def insert_or_replace(docid, text, sort_value = nil)
-      @db.execute("INSERT OR REPLACE INTO #{@table_name} (docid, text, sort_value) VALUES(?, ?, ?);",
-                  [docid, @tokenizer.vector(text), sort_value])
+    def update(docid, text, sort_value = nil)
+      if (SQLITE_HAVE_FT4_REPLACE)
+        @db.execute("INSERT OR REPLACE INTO #{@table_name} (docid, text, sort_value) VALUES(?, ?, ?);",
+                    [docid, @tokenizer.vector(text), sort_value])
+      else
+        begin
+          @db.execute("INSERT INTO #{@table_name} (docid, text, sort_value) VALUES(?, ?, ?);",
+                      [docid, @tokenizer.vector(text), sort_value])
+        rescue SQLite3::ConstraintException
+          @db.execute("UPDATE #{@table_name} SET text = ?, sort_value = ? WHERE docid = ?;",
+                      [@tokenizer.vector(text), sort_value, docid])
+        end
+      end
     end
     def update_sort_value(docid, sort_value)
       @db.execute("UPDATE #{@table_name} SET sort_value = ? WHERE docid = ?;",
@@ -67,27 +84,6 @@ module FtsLite
     end
     def delete_all
       @db.execute("DELETE FROM #{@table_name} ;")
-    end
-    def batch_insert(records)
-      @db.prepare("INSERT INTO #{@table_name} (docid, text, sort_value) VALUES(?, ?, ?);") do |stmt|
-        records.each do |rec|
-          stmt.execute([rec[:docid], @tokenizer.vector(rec[:text]), rec[:sort_value]])
-        end
-      end
-    end
-    def batch_insert_or_replace(records)
-      @db.prepare("INSERT OR REPLACE INTO #{@table_name} (docid, text, sort_value) VALUES(?, ?, ?);") do |stmt|
-        records.each do |rec|
-          stmt.execute([rec[:docid], @tokenizer.vector(rec[:text]), rec[:sort_value]])
-        end
-      end
-    end
-    def batch_update_sort_value(records)
-      @db.prepare("UPDATE #{@table_name} SET sort_value = ? WHERE docid = ?;") do |stmt|
-        records.each do |rec|
-          stmt.execute([rec[:sort_value], rec[:docid]])
-        end
-      end
     end
     def drop_table!
       if (table_exist?)

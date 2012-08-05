@@ -1,11 +1,6 @@
 # FtsLite
 
-simple full text search index.
-
-## Dependency
-
-    Ruby >= 1.9.2
-    SQLite3 >= 3.7.7 (FTS4 REPLACE support)
+full text search index.
 
 ## Installation
 
@@ -32,24 +27,9 @@ Or install it yourself as:
     sort_value = "2012-08-01"
     
     db.transaction do
-      db.insert_or_replace(docid, text, sort_value)
-      db.batch_insert_or_replace([
-        {:docid => 30, :text => "hoge hoge", :sort_value => '2012-08-01'},
-        {:docid => 40, :text => "piyo piyo", :sort_value => '2012-08-02'}
-      ])
+      db.update(docid, text, sort_value)
     end
     
     db.search('piyo', :order => :desc, :limit => 10).each do |docid|
       p docid
     end
-    
-    
-    db.batch_update_sort_value([
-      {:docid => 30, :sort_value => '2012-07-01'},
-      {:docid => 40, :sort_value => '2012-07-02'}
-    ])
-    
-    db.search('piyo', :order => :desc, :limit => 10).each do |docid|
-      p docid
-    end
-
