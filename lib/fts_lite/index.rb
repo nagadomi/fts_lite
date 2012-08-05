@@ -1,7 +1,7 @@
 require 'sqlite3'
 
 module FtsLite
-  class Database
+  class Index
     DEFAULT_TOKENIZER = :bigram
     DEFAULT_JURNAL_MODE = "MEMORY"
     DEFAULT_TEMP_STORE = "MEMORY"
@@ -24,6 +24,19 @@ module FtsLite
       set_db_param(options)
       @tokenizer = Tokenizer.create(options[:tokenizer] || DEFAULT_TOKENIZER)
     end
+    def self.open(path, options = {})
+      if (block_given?)
+        index = Index.new(path, options)
+        begin
+          yield(index)
+        ensure
+          index.close
+        end
+      else
+        Index.new(path, options)
+      end
+    end
+      
     def close
       @db.close
     end
@@ -35,7 +48,7 @@ module FtsLite
         block.call
       end
     end
-    def update(docid, text, sort_value = nil)
+    def set(docid, text, sort_value = nil)
       if (SQLITE_HAVE_FT4_REPLACE)
         @db.execute("INSERT OR REPLACE INTO #{@table_name} (docid, text, sort_value) VALUES(?, ?, ?);",
                     [docid, @tokenizer.vector(text), sort_value])

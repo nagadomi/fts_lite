@@ -70,9 +70,9 @@ module FtsLite
         split(text).join(" ")
       end
       def split(text)
-        words = BimyouSegmenter.segment(Tokenizer.normalize(text),
-                                        :white_space => false,
-                                        :symbol => false).map {|word|
+        BimyouSegmenter.segment(Tokenizer.normalize(text),
+                                :white_space => false,
+                                :symbol => false).map {|word|
           if (word.size == 1)
             word
           else
