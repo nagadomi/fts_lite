@@ -6,6 +6,7 @@ module FtsLite
     DEFAULT_JURNAL_MODE = "MEMORY"
     DEFAULT_TEMP_STORE = "MEMORY"
     DEFAULT_CACHE_SIZE = 32000
+    DEFAULT_TIMEOUT = 10000
     SQLITE_HAVE_FT4_REPLACE = SQLite3.libversion >= 3007007
     
     def self.have_ft4_replace
@@ -127,6 +128,7 @@ module FtsLite
         @db.execute("PRAGMA journal_mode=#{options[:journal_mode] || DEFAULT_JURNAL_MODE};")
         @db.execute("PRAGMA temp_store=#{options[:temp_store] || DEFAULT_TEMP_STORE};")
         @db.execute("PRAGMA cache_size=#{options[:cache_size] || DEFAULT_CACHE_SIZE};")
+        @db.busy_timeout = options[:timeout] || DEFAULT_TIMEOUT
       end
     end
   end
