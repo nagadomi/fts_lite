@@ -7,6 +7,7 @@ module FtsLite
     QUERY_DELIMITER = /[\s　]+/
     SIMPLE_DELIMITER = /[\s　\.\*"',\?!;\(\)。、．，？！「」『』（）]+/
     NEAR = " NEAR/2 "
+    NEAR0 = " NEAR/0 "
     
     def self.create(name)
       case name.to_sym
@@ -44,7 +45,7 @@ module FtsLite
         text.split(QUERY_DELIMITER).map {|segment|
           segment.split(SIMPLE_DELIMITER).map {|word|
             0.upto(word.size - 2).map {|i| word[i, 2] }
-          }.join(NEAR)
+          }.join(NEAR0)
         }.flatten.join(" ")
       end
       def vector(text)
@@ -63,7 +64,7 @@ module FtsLite
         text.split(QUERY_DELIMITER).map {|segment|
           segment.split(SIMPLE_DELIMITER).map {|word|
             0.upto(word.size - 3).map {|i| word[i, 3] }
-          }.join(NEAR)
+          }.join(NEAR0)
         }.flatten.join(" ")
       end
       def vector(text)
