@@ -91,7 +91,7 @@ module FtsLite
         sql += sprintf(" LIMIT %d", limit)
       end
       sql += ";"
-      @db.execute(sql, [@tokenizer.query(text)]).flatten
+      @db.execute(sql, [@tokenizer.query(text, options)]).flatten
     end
     def count
       @db.execute("SELECT COUNT(*) FROM #{@table_name} ;").first.first

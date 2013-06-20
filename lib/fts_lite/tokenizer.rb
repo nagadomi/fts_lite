@@ -6,8 +6,8 @@ module FtsLite
   module Tokenizer
     QUERY_DELIMITER = /[\s　]+/
     SIMPLE_DELIMITER = /[\s　\.\*"',\?!;\(\)。、．，？！「」『』（）]+/
-    NEAR = " NEAR/2 "
     NEAR0 = " NEAR/0 "
+    NEAR2 = " NEAR/2 "
     
     def self.create(name)
       case name.to_sym
@@ -29,7 +29,7 @@ module FtsLite
       NKF::nkf('-wZX', text).downcase
     end
     class Simple
-      def query(text)
+      def query(text, options)
         vector(text)
       end
       def vector(text)
@@ -40,12 +40,14 @@ module FtsLite
       end
     end
     class Bigram
-      def query(text)
+      def query(text, options = {})
+        fuzzy = options.key?(:fuzzy) ? options[:fuzzy] : false
+        near = fuzzy ? NEAR2 : NEAR0
         text = Tokenizer.normalize(text)
         text.split(QUERY_DELIMITER).map {|segment|
           segment.split(SIMPLE_DELIMITER).map {|word|
             0.upto(word.size - 2).map {|i| word[i, 2] }
-          }.join(NEAR0)
+          }.join(near)
         }.flatten.join(" ")
       end
       def vector(text)
@@ -59,12 +61,14 @@ module FtsLite
       end
     end
     class Trigram
-      def query(text)
+      def query(text, options = {})
+        fuzzy = options.key?(:fuzzy) ? options[:fuzzy] : false
+        near = fuzzy ? NEAR2 : NEAR0
         text = Tokenizer.normalize(text)
         text.split(QUERY_DELIMITER).map {|segment|
           segment.split(SIMPLE_DELIMITER).map {|word|
             0.upto(word.size - 3).map {|i| word[i, 3] }
-          }.join(NEAR0)
+          }.join(near)
         }.flatten.join(" ")
       end
       def vector(text)
@@ -78,12 +82,14 @@ module FtsLite
       end
     end
     class Wakachi
-      def query(text)
+      def query(text, options = {})
+        fuzzy = options.key?(:fuzzy) ? options[:fuzzy] : false
+        near = fuzzy ? NEAR2 : NEAR0
         text = Tokenizer.normalize(text)
         text.split(QUERY_DELIMITER).map {|segment|
           BimyouSegmenter.segment(segment,
                                   :white_space => false,
-                                  :symbol => false).join(NEAR)
+                                  :symbol => false).join(near)
         }.join(" ")
       end
       def vector(text)
@@ -96,7 +102,9 @@ module FtsLite
       end
     end
     class WakachiBigram
-      def query(text)
+      def query(text, options = {})
+        fuzzy = options.key?(:fuzzy) ? options[:fuzzy] : false
+        near = fuzzy ? NEAR2 : NEAR0
         text = Tokenizer.normalize(text)
         text.split(QUERY_DELIMITER).map {|segment|
           BimyouSegmenter.segment(segment,
@@ -105,9 +113,9 @@ module FtsLite
             if (word.size == 1)
               word
             else
-              0.upto(word.size - 2).map {|i| word[i, 2] }.join(NEAR)
+              0.upto(word.size - 2).map {|i| word[i, 2] }.join(near)
             end
-          }.flatten.join(NEAR)
+          }.flatten.join(near)
         }.join(" ")
       end
       def vector(text)

@@ -181,6 +181,20 @@ class FtsLiteTest < Test::Unit::TestCase
       assert_equal db.search("ナポリタン", :order => :asc)[1], 2
     end
   end
+  def test_fuzzy
+    db = FtsLite::Index.open(DB_FILE, :tokenizer => :bigram)
+    db.transaction do
+      db.delete_all
+      db.set(1, "あいいいう")
+      db.set(2, "あいいう")
+      assert_equal db.search("あいい").size, 2
+      assert_equal db.search("あいう").size, 0
+      assert_equal db.search("あいい", :fuzzy => true).size, 2
+      assert_equal db.search("あいう", :fuzzy => true).size, 2
+      assert_equal db.search("あいい", :fuzzy => false).size, 2
+      assert_equal db.search("あいう", :fuzzy => false).size, 0
+    end
+  end
   def test_create
     db = FtsLite::Index.open(DB_FILE)
     db.drop_table!
