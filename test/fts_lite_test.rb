@@ -195,6 +195,38 @@ class FtsLiteTest < Test::Unit::TestCase
       assert_equal db.search("あいう", :fuzzy => false).size, 0
     end
   end
+  def test_conditions
+    db = FtsLite::Index.open(DB_FILE, :tokenizer => :bigram)
+    db.transaction do 
+      db.delete_all
+      db.set(1, "なぜナポリタンは赤いのだろうか ？", Date.new(2014, 1, 1))
+      db.set(2, "昼飯のスパゲティナポリタンを眺めながら、積年の疑問を考えていた。 ", Date.new(2014, 1, 2))
+      db.set(3, "それは「なぜナポリタンは赤いのだろうか」という問いである。", Date.new(2014, 1, 3))
+      
+      assert_equal db.search("ナポリタン", :order => :asc).size, 3
+      assert_equal db.search("ナポリタン", :order => :asc)[0], 1
+      assert_equal db.search("ナポリタン", :order => :asc)[1], 2
+      assert_equal db.search("ナポリタン", :order => :asc)[2], 3
+      assert_equal db.search("ナポリタン", :order => :desc).size, 3
+      assert_equal db.search("ナポリタン", :order => :desc)[0], 3
+      assert_equal db.search("ナポリタン", :order => :desc)[1], 2
+      assert_equal db.search("ナポリタン", :order => :desc)[2], 1
+
+      assert_equal db.search("ナポリタン", :range => {:gt => Date.new(2014, 1, 2)}).size, 1
+      assert_equal db.search("ナポリタン", :range => {:gt => Date.new(2014, 1, 2)})[0], 3
+      assert_equal db.search("ナポリタン", :range => {:lt => Date.new(2014, 1, 2)}).size, 1
+      assert_equal db.search("ナポリタン", :range => {:lt => Date.new(2014, 1, 2)})[0], 1
+      assert_equal db.search("ナポリタン", :range => {:gte => Date.new(2014, 1, 2)}).size, 2
+      assert_equal db.search("ナポリタン", :order => :asc, :range => {:gte => Date.new(2014, 1, 2)})[0], 2
+      assert_equal db.search("ナポリタン", :order => :asc, :range => {:gte => Date.new(2014, 1, 2)})[1], 3
+      assert_equal db.search("ナポリタン", :range => {:lte => Date.new(2014, 1, 2)}).size, 2
+      assert_equal db.search("ナポリタン", :order => :asc, :range => {:lte => Date.new(2014, 1, 2)})[0], 1
+      assert_equal db.search("ナポリタン", :order => :asc, :range => {:lte => Date.new(2014, 1, 2)})[1], 2
+      
+      assert_equal db.search("ナポリタン", :range => {:gte => Date.new(2014, 1, 2), :lt => Date.new(2014, 1, 3)}).size, 1
+      assert_equal db.search("ナポリタン", :range => {:gte => Date.new(2014, 1, 2), :lt => Date.new(2014, 1, 3)})[0], 2
+    end
+  end
   def test_create
     db = FtsLite::Index.open(DB_FILE)
     db.drop_table!

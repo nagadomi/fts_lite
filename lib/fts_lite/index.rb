@@ -37,7 +37,21 @@ module FtsLite
         Index.new(path, options)
       end
     end
-      
+
+    def sql_value(x)
+      if x.nil?
+        x
+      elsif x.is_a?(DateTime)
+        x.iso8601
+      elsif x.is_a?(Date)
+        x.iso8601
+      elsif x.is_a?(Time)
+        x.to_datetime.iso8601
+      else
+        x
+      end
+    end
+    
     def close
       @db.close
     end
@@ -52,27 +66,32 @@ module FtsLite
     def set(docid, text, sort_value = nil)
       if (SQLITE_HAVE_FT4_REPLACE)
         @db.execute("INSERT OR REPLACE INTO #{@table_name} (docid, text, sort_value) VALUES(?, ?, ?);",
-                    [docid, @tokenizer.vector(text), sort_value])
+                    [docid, @tokenizer.vector(text), sql_value(sort_value)])
       else
         begin
           @db.execute("INSERT INTO #{@table_name} (docid, text, sort_value) VALUES(?, ?, ?);",
-                      [docid, @tokenizer.vector(text), sort_value])
+                      [docid, @tokenizer.vector(text), sql_value(sort_value)])
         rescue SQLite3::ConstraintException
           @db.execute("UPDATE #{@table_name} SET text = ?, sort_value = ? WHERE docid = ?;",
-                      [@tokenizer.vector(text), sort_value, docid])
+                      [@tokenizer.vector(text), sql_value(sort_value), docid])
         end
       end
     end
     def update_sort_value(docid, sort_value)
       @db.execute("UPDATE #{@table_name} SET sort_value = ? WHERE docid = ?;",
-                  [sort_value, docid])
+                  [sql_value(sort_value), docid])
     end
     def delete(docid)
       @db.execute("DELETE FROM #{@table_name} WHERE docid = ?;", [docid])
     end
     def search(text, options = {})
+      options ||= {}
       limit = options[:limit]
       order = nil
+      gt = nil
+      lt = nil
+      gte = nil
+      lte = nil
       if (options[:order])
         case options[:order].to_sym
         when :desc
@@ -81,7 +100,25 @@ module FtsLite
           order = :asc
         end
       end
+      if (options[:range])
+        gt = options[:range][:gt]
+        lt = options[:range][:lt]
+        gte = options[:range][:gte]
+        lte = options[:range][:lte]
+      end
       sql = "SELECT docid FROM #{@table_name} WHERE text MATCH ?"
+      if gt
+        sql += " AND sort_value > ? "
+      end
+      if lt
+        sql += " AND sort_value < ? "
+      end
+      if gte
+        sql += " AND sort_value >= ? "
+      end
+      if lte
+        sql += " AND sort_value <= ? "
+      end
       if (order)
         sql += sprintf(" ORDER BY sort_value %s", order == :desc ? "DESC" : "ASC")
       else
@@ -91,7 +128,8 @@ module FtsLite
         sql += sprintf(" LIMIT %d", limit)
       end
       sql += ";"
-      @db.execute(sql, [@tokenizer.query(text, options)]).flatten
+      conditions = [gt, lt, gte, lte].reject{|v| v.nil?}.map{|v| sql_value(v)}
+      @db.execute(sql, [@tokenizer.query(text, options), conditions].flatten).flatten
     end
     def count
       @db.execute("SELECT COUNT(*) FROM #{@table_name} ;").first.first
